@@ -35,6 +35,8 @@ struct TorrentInfo {
 	std::vector<FileInfo> files;
 	std::string infoHash;
 	bool isMultiFile;
+	// Путь для загрузки (выбран пользователем)
+	std::string downloadPath;
 };
 
 // Класс для парсинга и управления торрент файлами

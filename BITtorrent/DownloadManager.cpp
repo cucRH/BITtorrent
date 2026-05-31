@@ -1,4 +1,5 @@
 #include "DownloadManager.h"
+#include "Logger.h"
 #include <chrono>
 
 DownloadManager::DownloadManager()
@@ -28,6 +29,9 @@ bool DownloadManager::StartDownload(const TorrentInfo& torrentInfo) {
 	isPaused = false;
 	downloadedBytes = 0;
 	uploadedBytes = 0;
+
+	// Логируем запуск загрузки
+	Logger::GetInstance().Info("StartDownload called: name=" + currentTorrent.name + ", size=" + std::to_string(currentTorrent.totalLength), "DownloadManager");
 
 	downloadThread = std::thread(&DownloadManager::DownloadThread, this);
 	return true;

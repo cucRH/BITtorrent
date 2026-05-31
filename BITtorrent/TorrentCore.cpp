@@ -33,60 +33,156 @@ bool TorrentParser::LoadTorrent(const std::string& filePath, TorrentInfo& torren
 	file.close();
 
 	Logger::GetInstance().Debug("File read, size: " + std::to_string(data.size()), "TorrentParser");
+	Logger::GetInstance().Debug("File content (first 200 chars): " + data.substr(0, data.size() > 200 ? 200 : data.size()), "TorrentParser");
 
 	try {
+		// Устанавливаем значения по умолчанию
+		torrentInfo.name = "Unknown";
+		torrentInfo.announce = "";
+		torrentInfo.comment = "";
+		torrentInfo.createdBy = "";
+		torrentInfo.totalLength = 0;
+		torrentInfo.pieceLength = 0;
+		torrentInfo.isMultiFile = false;
+
 		size_t pos = 0;
+		if (data.empty() || data[0] != 'd') {
+			Logger::GetInstance().Log(LogLevel::LOG_ERROR, "Invalid torrent format: doesn't start with 'd'", "TorrentParser");
+			return false;
+		}
+
 		auto dict = DecodeBencodeDict(data, pos);
 
 		Logger::GetInstance().Debug("Bencoding parsed, dict size: " + std::to_string(dict.size()), "TorrentParser");
 
 		// Логируем все ключи в словаре
 		for (const auto& pair : dict) {
-			Logger::GetInstance().Debug("Dict key: " + pair.first + ", value size: " + std::to_string(pair.second.size()), "TorrentParser");
+			Logger::GetInstance().Debug("Dict key: '" + pair.first + "', value size: " + std::to_string(pair.second.size()), "TorrentParser");
 		}
 
-		torrentInfo.announce = dict.count("announce") ? dict["announce"] : "";
-		torrentInfo.comment = dict.count("comment") ? dict["comment"] : "";
-		torrentInfo.createdBy = dict.count("created by") ? dict["created by"] : "";
+		// Получаем основные поля
+		if (dict.count("announce") && !dict["announce"].empty()) {
+			torrentInfo.announce = dict["announce"];
+			Logger::GetInstance().Debug("Found announce: " + torrentInfo.announce, "TorrentParser");
+		}
 
-		Logger::GetInstance().Debug("Announce: " + torrentInfo.announce, "TorrentParser");
+		if (dict.count("comment") && !dict["comment"].empty()) {
+			torrentInfo.comment = dict["comment"];
+		}
+
+		if (dict.count("created by") && !dict["created by"].empty()) {
+			torrentInfo.createdBy = dict["created by"];
+		}
 
 		// Парсинг info словаря
 		if (dict.count("info")) {
 			auto infoData = dict["info"];
 			Logger::GetInstance().Debug("Info data found, size: " + std::to_string(infoData.size()), "TorrentParser");
 
-			size_t previewLen = infoData.size() > 100 ? 100 : infoData.size();
-			Logger::GetInstance().Debug("Info data (first 100 chars): " + infoData.substr(0, previewLen), "TorrentParser");
+			if (!infoData.empty()) {
+				size_t previewLen = infoData.size() > 100 ? 100 : infoData.size();
+				Logger::GetInstance().Debug("Info data content: " + infoData.substr(0, previewLen), "TorrentParser");
 
-			size_t infoPos = 0;
-			auto infoDict = DecodeBencodeDict(infoData, infoPos);
+				try {
+					size_t infoPos = 0;
+					auto infoDict = DecodeBencodeDict(infoData, infoPos);
 
-			Logger::GetInstance().Debug("Info dict parsed, size: " + std::to_string(infoDict.size()), "TorrentParser");
+					Logger::GetInstance().Debug("Info dict parsed, size: " + std::to_string(infoDict.size()), "TorrentParser");
 
-			// Логируем все ключи в info словаре
-			for (const auto& pair : infoDict) {
-				Logger::GetInstance().Debug("Info key: " + pair.first + ", value size: " + std::to_string(pair.second.size()), "TorrentParser");
-			}
+					// Логируем все ключи в info словаре
+					for (const auto& pair : infoDict) {
+						Logger::GetInstance().Debug("  Info key: '" + pair.first + "', value size: " + std::to_string(pair.second.size()), "TorrentParser");
+					}
 
-			torrentInfo.name = infoDict.count("name") ? infoDict["name"] : "Unknown";
-			torrentInfo.pieceLength = infoDict.count("piece length") ? std::stoul(infoDict["piece length"]) : 0;
+					// Извлекаем имя
+					if (infoDict.count("name") && !infoDict["name"].empty()) {
+						torrentInfo.name = infoDict["name"];
+						Logger::GetInstance().Debug("Found name: " + torrentInfo.name, "TorrentParser");
+					} else {
+						// Попробуем альтернативные ключи (utf-8 и др.)
+						if (infoDict.count("name.utf-8") && !infoDict["name.utf-8"].empty()) {
+							torrentInfo.name = infoDict["name.utf-8"];
+							Logger::GetInstance().Debug("Found name (name.utf-8): " + torrentInfo.name, "TorrentParser");
+						} else if (infoDict.count("name.utf8") && !infoDict["name.utf8"].empty()) {
+							torrentInfo.name = infoDict["name.utf8"];
+							Logger::GetInstance().Debug("Found name (name.utf8): " + torrentInfo.name, "TorrentParser");
+						}
+					}
 
-			Logger::GetInstance().Debug("Name: " + torrentInfo.name + ", Piece length: " + std::to_string(torrentInfo.pieceLength), "TorrentParser");
+					// Извлекаем длину куска
+					if (infoDict.count("piece length") && !infoDict["piece length"].empty()) {
+						try {
+							torrentInfo.pieceLength = std::stoul(infoDict["piece length"]);
+							Logger::GetInstance().Debug("Found piece length: " + std::to_string(torrentInfo.pieceLength), "TorrentParser");
+						} catch (...) {
+							Logger::GetInstance().Debug("Failed to parse piece length: " + infoDict["piece length"], "TorrentParser");
+						}
+					}
 
-			// Определяем, это мульти-файл или одиночный файл
-			if (infoDict.count("files")) {
-				torrentInfo.isMultiFile = true;
-				torrentInfo.totalLength = 0;
-				Logger::GetInstance().Debug("Multi-file torrent detected", "TorrentParser");
-			} else {
-				torrentInfo.isMultiFile = false;
-				torrentInfo.totalLength = infoDict.count("length") ? std::stoull(infoDict["length"]) : 0;
-				Logger::GetInstance().Debug("Single-file torrent, length: " + std::to_string(torrentInfo.totalLength), "TorrentParser");
+					// Определяем, это мульти-файл или одиночный файл
+					if (infoDict.count("files")) {
+						// Multi-file: суммируем все длины файлов в списке
+						torrentInfo.isMultiFile = true;
+						torrentInfo.totalLength = 0;
+						Logger::GetInstance().Debug("Multi-file torrent detected, parsing files list", "TorrentParser");
+						try {
+							std::string filesData = infoDict["files"];
+							size_t filesPos = 0;
+							// Ожидаем, что filesData начинается с 'l'
+							if (filesPos < filesData.size() && filesData[filesPos] == 'l') {
+								filesPos++; // skip 'l'
+								while (filesPos < filesData.size() && filesData[filesPos] != 'e') {
+									if (filesData[filesPos] == 'd') {
+										// Decode each file dict using existing DecodeBencodeDict (works on substring)
+										size_t dictPos = filesPos;
+										auto fileDict = DecodeBencodeDict(filesData, dictPos);
+										filesPos = dictPos; // advance filesPos
+										// В fileDict может быть ключ "length" как число или строкой
+										if (fileDict.count("length") && !fileDict["length"].empty()) {
+											try {
+												uint64_t len = std::stoull(fileDict["length"]);
+												torrentInfo.totalLength += len;
+												Logger::GetInstance().Debug("Found file length: " + std::to_string(len), "TorrentParser");
+											} catch (...) {
+												Logger::GetInstance().Debug("Failed to parse file length: " + fileDict["length"], "TorrentParser");
+											}
+										}
+									} else {
+										// Если встречаем что-то неожиданное, двигаемся дальше безопасно
+										filesPos++;
+									}
+								}
+							}
+							Logger::GetInstance().Debug("Total multi-file size: " + std::to_string(torrentInfo.totalLength), "TorrentParser");
+						} catch (const std::exception& e) {
+							Logger::GetInstance().Log(LogLevel::LOG_ERROR, std::string("Failed to parse files list: ") + e.what(), "TorrentParser");
+						}
+					} else if (infoDict.count("length")) {
+						torrentInfo.isMultiFile = false;
+						try {
+							torrentInfo.totalLength = std::stoull(infoDict["length"]);
+							Logger::GetInstance().Debug("Single-file torrent, length: " + std::to_string(torrentInfo.totalLength), "TorrentParser");
+						} catch (...) {
+							Logger::GetInstance().Debug("Failed to parse length: " + infoDict["length"], "TorrentParser");
+						}
+					}
+				} catch (const std::exception& e) {
+					Logger::GetInstance().Log(LogLevel::LOG_ERROR, std::string("Failed to parse info dict: ") + e.what(), "TorrentParser");
+				}
 			}
 		}
 
-		Logger::GetInstance().Info("Torrent loaded successfully: " + torrentInfo.name, "TorrentParser");
+		// Если имя не найдено в метаданных, используем имя файла .torrent
+		if (torrentInfo.name.empty() || torrentInfo.name == "Unknown") {
+			size_t p = filePath.find_last_of("\\/");
+			std::string fname = (p == std::string::npos) ? filePath : filePath.substr(p + 1);
+			size_t dot = fname.find_last_of('.');
+			if (dot != std::string::npos) fname = fname.substr(0, dot);
+			torrentInfo.name = fname;
+			Logger::GetInstance().Debug("Name not present in metadata, using filename: " + torrentInfo.name, "TorrentParser");
+		}
+
+		Logger::GetInstance().Info("Torrent loaded: name=" + torrentInfo.name + ", size=" + std::to_string(torrentInfo.totalLength), "TorrentParser");
 		return true;
 	} catch (const std::exception& e) {
 		Logger::GetInstance().Log(LogLevel::LOG_ERROR, std::string("Exception: ") + e.what(), "TorrentParser");

@@ -24,6 +24,15 @@ UIManager::UIManager(HWND hWnd)
 	downloadManager(),
 	storageManager(),
 	trackerManager() {
+	// Инициализируем текущий торрент значениями по умолчанию, чтобы избежать мусора в UI
+	currentTorrent.name = "Unknown";
+	currentTorrent.announce = "";
+	currentTorrent.comment = "";
+	currentTorrent.createdBy = "";
+	currentTorrent.totalLength = 0;
+	currentTorrent.pieceLength = 0;
+	currentTorrent.isMultiFile = false;
+
 	storageManager.Initialize("./BitTorrent_Data");
 }
 
@@ -344,7 +353,17 @@ void UIManager::HandleFileOpen() {
 
 				{
 					std::lock_guard<std::mutex> lock(torrentMutex);
+					Logger::GetInstance().Info("UIManager: Torrent loaded, name=" + tempTorrent.name + ", size=" + std::to_string(tempTorrent.totalLength), "UIManager");
 					currentTorrent = tempTorrent;
+					// Если имя не установлено, используем имя файла .torrent
+					if (currentTorrent.name.empty() || currentTorrent.name == "Unknown") {
+						size_t pos = filePath.find_last_of("\\/");
+						std::string fname = (pos == std::string::npos) ? filePath : filePath.substr(pos + 1);
+						size_t dot = fname.find_last_of('.');
+						if (dot != std::string::npos) fname = fname.substr(0, dot);
+						currentTorrent.name = fname;
+						Logger::GetInstance().Debug("Using torrent filename as name: " + currentTorrent.name, "UIManager");
+					}
 					hasActiveTorrent = true;
 				}
 
@@ -367,9 +386,11 @@ void UIManager::HandleFileOpen() {
 
 				// Обновляем имя торрента в UI (из основного потока!)
 				std::string nameLabel = "Torrent: " + currentTorrent.name;
+				Logger::GetInstance().Debug("Setting window text to: " + nameLabel, "UIManager");
 				SetWindowTextA(hTorrentNameLabel, nameLabel.c_str());
 
 				// Отправляем сообщение основному потоку для обновления UI
+				Logger::GetInstance().Debug("Posting UI update message", "UIManager");
 				PostMessage(hMainWindow, WM_USER + 1, 0, 0);
 			} else {
 				Logger::GetInstance().Log(LogLevel::LOG_ERROR, "Failed to load torrent: " + filePath, "UIManager");
