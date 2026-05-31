@@ -1,0 +1,59 @@
+# BitTorrent Client Configuration File
+# Default Settings
+
+# Путь к папке загрузок
+DownloadPath = ./Downloads
+
+# Максимальное количество одновременных подключений
+MaxConnections = 100
+
+# Максимальная скорость выгрузки (0 = без ограничений, значение в KB/s)
+MaxUploadSpeed = 0
+
+# Максимальная скорость загрузки (0 = без ограничений, значение в KB/s)
+MaxDownloadSpeed = 0
+
+# Максимальный размер кеша в MB
+MaxCacheSize = 512
+
+# Разрешить выгрузку файлов (seeding)
+EnableUpload = true
+
+# Включить DHT (Distributed Hash Table)
+EnableDHT = true
+
+# Включить PEX (Peer Exchange)
+EnablePEX = true
+
+# Порт для прослушивания входящих подключений
+ListeningPort = 6881
+
+# Язык интерфейса
+Language = English
+
+# Интервал обновления пользовательского интерфейса (мс)
+UIUpdateInterval = 500
+
+# Интервал запроса к трекеру (сек)
+TrackerRequestInterval = 1800
+
+# Размер куска данных для скачивания (KB)
+PieceSize = 262144
+
+# Размер блока в куске (KB)
+BlockSize = 16
+
+# Порт для DHT
+DHTPort = 6881
+
+# Максимальное количество пиров для одного торрента
+MaxPeersPerTorrent = 100
+
+# Таймаут подключения к пиру (сек)
+PeerTimeout = 120
+
+# Включить логирование
+EnableLogging = true
+
+# Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+LogLevel = INFO

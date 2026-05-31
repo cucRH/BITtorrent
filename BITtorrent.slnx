@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="BITtorrent/BITtorrent.vcxproj" Id="af1d1e7c-0aa3-4cc0-92a6-24cce78d4514" />
+</Solution>
