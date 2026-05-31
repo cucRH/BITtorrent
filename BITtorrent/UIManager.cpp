@@ -310,12 +310,43 @@ void UIManager::OnCommand(int wmId, HWND hWnd) {
 		downloadManager.StartDownload(currentTorrent);
 		break;
 	case IDC_BTN_PAUSE_DOWNLOAD:
-		downloadManager.PauseDownload();
-		break;
-	case IDC_BTN_REMOVE:
-		downloadManager.StopDownload();
-		hasActiveTorrent = false;
-		break;
+				downloadManager.PauseDownload();
+				break;
+			case IDC_BTN_REMOVE:
+				// Запрос подтверждения удаления
+				if (MessageBoxA(hMainWindow, "Remove torrent and downloaded data?", "Confirm", MB_YESNO | MB_ICONQUESTION) == IDYES) {
+					// Помечаем для удаления и останавливаем (флаг до остановки)
+					downloadManager.removeRequested = true;
+					downloadManager.StopDownload();
+					// Удаляем файлы метаданных и данных
+					std::string dataPath = storageManager.GetTorrentDataPath(currentTorrent.name);
+					std::string metaFile = std::string("./BitTorrent_Data/metadata/") + currentTorrent.name + ".meta";
+					try {
+						// Удаляем директорию рекурсивно с помощью SHFileOperationW (нужен double-null terminated string)
+						std::wstring wpath(dataPath.begin(), dataPath.end());
+						wpath.push_back(L'\0'); // двойной нуль
+						wpath.push_back(L'\0');
+						SHFILEOPSTRUCTW fileOp = {0};
+						fileOp.hwnd = hMainWindow;
+						fileOp.wFunc = FO_DELETE;
+						fileOp.pFrom = wpath.c_str();
+						fileOp.fFlags = FOF_NOCONFIRMATION | FOF_SILENT | FOF_NOERRORUI;
+						SHFileOperationW(&fileOp);
+						// Удаляем мета файл
+						remove(metaFile.c_str());
+					} catch (...) {}
+					// Сбрасываем текущий торрент и UI
+					hasActiveTorrent = false;
+					currentTorrent = TorrentInfo();
+					// Удаляем запись из списка загрузок
+					if (hListDownloads) {
+						ListView_DeleteAllItems(hListDownloads);
+					}
+					SetWindowTextA(hTorrentNameLabel, "No torrent loaded");
+					SendMessage(hProgressBar, PBM_SETPOS, 0, 0);
+					PostMessage(hMainWindow, WM_USER + 1, 0, 0);
+				}
+				break;
 	}
 }
 

@@ -21,14 +21,25 @@ DownloadManager::~DownloadManager() {
 }
 
 bool DownloadManager::StartDownload(const TorrentInfo& torrentInfo) {
+	std::lock_guard<std::mutex> lock(stateMutex);
+	// Если уже скачиваем тот же торрент - ничего не делаем
 	if (state == DownloadState::DOWNLOADING) {
 		return false;
 	}
 
+	// Если пауза для того же торрента - просто возобновляем
+	if (state == DownloadState::PAUSED && currentTorrent.name == torrentInfo.name) {
+		ResumeDownload();
+		Logger::GetInstance().Info("Resuming download: name=" + currentTorrent.name, "DownloadManager");
+		return true;
+	}
+
+	// Иначе начинаем новую загрузку
 	currentTorrent = torrentInfo;
 	state = DownloadState::DOWNLOADING;
 	isRunning = true;
 	isPaused = false;
+	// Сбросим прогресс только при старте новой загрузки
 	downloadedBytes = 0;
 	uploadedBytes = 0;
 
@@ -43,6 +54,7 @@ void DownloadManager::PauseDownload() {
 	if (state == DownloadState::DOWNLOADING) {
 		isPaused = true;
 		state = DownloadState::PAUSED;
+		Logger::GetInstance().Info("Download paused: " + currentTorrent.name, "DownloadManager");
 	}
 }
 
@@ -50,15 +62,25 @@ void DownloadManager::ResumeDownload() {
 	if (state == DownloadState::PAUSED) {
 		isPaused = false;
 		state = DownloadState::DOWNLOADING;
+		Logger::GetInstance().Info("Download resumed: " + currentTorrent.name, "DownloadManager");
 	}
 }
 
 void DownloadManager::StopDownload() {
+	// Если запрос на удаление, помечаем флаг
+	if (removeRequested) {
+		try {
+			std::filesystem::remove_all(currentTorrent.downloadPath + "/" + currentTorrent.name + ".bin");
+		} catch (...) {}
+		removeRequested = false;
+	}
+
 	isRunning = false;
 	if (downloadThread.joinable()) {
 		downloadThread.join();
 	}
 	state = DownloadState::IDLE;
+	Logger::GetInstance().Info("Download stopped: " + currentTorrent.name, "DownloadManager");
 }
 
 DownloadState DownloadManager::GetState() const {

@@ -33,6 +33,10 @@ public:
 	int GetPeers() const;
 	int GetSeeds() const;
 
+public:
+	// Флаг для удаления данных (управляется UI)
+	bool removeRequested = false;
+
 private:
 	void DownloadThread();
 	void UpdateStats();
