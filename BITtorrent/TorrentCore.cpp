@@ -182,7 +182,7 @@ bool TorrentParser::LoadTorrent(const std::string& filePath, TorrentInfo& torren
 			Logger::GetInstance().Debug("Name not present in metadata, using filename: " + torrentInfo.name, "TorrentParser");
 		}
 
-		Logger::GetInstance().Info("Torrent loaded: name=" + torrentInfo.name + ", size=" + std::to_string(torrentInfo.totalLength), "TorrentParser");
+		Logger::GetInstance().Info("Torrent loaded: name=" + torrentInfo.name + ", size=" + std::to_string(torrentInfo.totalLength) + ", downloadPath=" + torrentInfo.downloadPath, "TorrentParser");
 		return true;
 	} catch (const std::exception& e) {
 		Logger::GetInstance().Log(LogLevel::LOG_ERROR, std::string("Exception: ") + e.what(), "TorrentParser");

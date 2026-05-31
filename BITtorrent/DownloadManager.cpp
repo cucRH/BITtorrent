@@ -1,6 +1,8 @@
 #include "DownloadManager.h"
 #include "Logger.h"
 #include <chrono>
+#include <fstream>
+#include <filesystem>
 
 DownloadManager::DownloadManager()
 	: state(DownloadState::IDLE),
@@ -124,9 +126,26 @@ void DownloadManager::DownloadThread() {
 
 			// Проверяем, что totalLength > 0
 			if (currentTorrent.totalLength > 0 && downloadedBytes < currentTorrent.totalLength) {
+				// Симуляция скачивания
 				downloadedBytes += 1024 * 10; // 10 KB за итерацию
 				if (downloadedBytes > currentTorrent.totalLength) {
 					downloadedBytes = currentTorrent.totalLength;
+				}
+
+				// Записываем данные в файл в папке загрузки
+				try {
+					std::filesystem::create_directories(currentTorrent.downloadPath);
+					std::string outFile = currentTorrent.downloadPath + "/" + currentTorrent.name + ".bin";
+					std::ofstream ofs(outFile, std::ios::binary | std::ios::app);
+					if (ofs.is_open()) {
+						char buf[10240];
+						size_t toWrite = std::min<uint64_t>(10240, currentTorrent.totalLength - (downloadedBytes - 10240));
+						memset(buf, 0, sizeof(buf));
+						ofs.write(buf, toWrite);
+						ofs.close();
+					}
+				} catch (...) {
+					// Игнорируем ошибки записи для простоты
 				}
 			}
 

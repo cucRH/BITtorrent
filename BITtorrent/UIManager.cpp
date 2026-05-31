@@ -2,6 +2,8 @@
 #include <sstream>
 #include <iomanip>
 #include <shellapi.h>
+#include <shlobj.h>
+#include <objbase.h>
 #include <time.h>
 #include <thread>
 #include "Logger.h"
@@ -342,8 +344,26 @@ void UIManager::HandleFileOpen() {
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST;
 
 	if (GetOpenFileNameA(&ofn)) {
+				// Запрос директории загрузки у пользователя
+				BROWSEINFOA bi = {0};
+				char pathBuf[MAX_PATH] = {0};
+				bi.hwndOwner = hMainWindow;
+				bi.lpszTitle = "Select download directory";
+				bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+				LPITEMIDLIST pidl = SHBrowseForFolderA(&bi);
+				std::string downloadPath;
+				if (pidl) {
+					SHGetPathFromIDListA(pidl, pathBuf);
+					downloadPath = std::string(pathBuf);
+					CoTaskMemFree(pidl);
+				} else {
+					// Пользователь отменил выбор директории
+					Logger::GetInstance().Info("User cancelled folder selection, using default path", "UIManager");
+					downloadPath = "./BitTorrent_Data";
+				}
+
 		// Запускаем загрузку торрента в отдельном потоке чтобы не заморозить UI
-		std::thread loadThread([this, filePath = std::string(szFile)]() {
+		std::thread loadThread([this, filePath = std::string(szFile), downloadPath]() {
 			Logger::GetInstance().Info("Loading torrent: " + filePath, "UIManager");
 
 			TorrentParser parser;
@@ -355,6 +375,7 @@ void UIManager::HandleFileOpen() {
 					std::lock_guard<std::mutex> lock(torrentMutex);
 					Logger::GetInstance().Info("UIManager: Torrent loaded, name=" + tempTorrent.name + ", size=" + std::to_string(tempTorrent.totalLength), "UIManager");
 					currentTorrent = tempTorrent;
+										currentTorrent.downloadPath = downloadPath;
 					// Если имя не установлено, используем имя файла .torrent
 					if (currentTorrent.name.empty() || currentTorrent.name == "Unknown") {
 						size_t pos = filePath.find_last_of("\\/");
