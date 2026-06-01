@@ -35,7 +35,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -98,7 +98,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -132,7 +132,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
     <Manifest>
       <EnableSegmentHeap>true</EnableSegmentHeap>
@@ -185,20 +185,7 @@
     <Image Include="small.ico" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="ARCHITECTURE.md" />
-    <None Include="BITtorrent\test_file.torrent" />
-    <None Include="COMPLETION_REPORT.md" />
     <None Include="config.ini.example" />
-    <None Include="DEVELOPER_GUIDE.md" />
-    <None Include="EXTENDED_COMPONENTS.md" />
-    <None Include="EXTENDING.md" />
-    <None Include="INDEX.md" />
-    <None Include="PROJECT_COMPLETION_STATUS.md" />
-    <None Include="QUICKSTART.md" />
-    <None Include="README.md" />
-    <None Include="REFERENCE.md" />
-    <None Include="STATE_MANAGEMENT.md" />
-    <None Include="USER_GUIDE.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

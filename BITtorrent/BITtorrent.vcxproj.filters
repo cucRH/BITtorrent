@@ -137,19 +137,6 @@
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <None Include="README.md" />
     <None Include="config.ini.example" />
-    <None Include="ARCHITECTURE.md" />
-    <None Include="EXTENDING.md" />
-    <None Include="REFERENCE.md" />
-    <None Include="COMPLETION_REPORT.md" />
-    <None Include="EXTENDED_COMPONENTS.md" />
-    <None Include="STATE_MANAGEMENT.md" />
-    <None Include="USER_GUIDE.md" />
-    <None Include="DEVELOPER_GUIDE.md" />
-    <None Include="PROJECT_COMPLETION_STATUS.md" />
-    <None Include="QUICKSTART.md" />
-    <None Include="INDEX.md" />
-    <None Include="BITtorrent\test_file.torrent" />
   </ItemGroup>
 </Project>
