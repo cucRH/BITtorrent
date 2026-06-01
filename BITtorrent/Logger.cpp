@@ -3,6 +3,8 @@
 #include <fstream>
 #include <iomanip>
 #include <ctime>
+#include <chrono>
+
 
 Logger* g_logger = nullptr;
 
@@ -37,6 +39,21 @@ void Logger::Log(LogLevel level, const std::string& message, const std::string& 
 	ss << "[" << entry.timestamp << "] [" << GetLevelString(level) << "] ["
 	   << source << "] " << message << "\n";
 
+	auto now = std::chrono::system_clock::now();
+	auto now_time = std::chrono::system_clock::to_time_t(now);
+
+	struct tm time_info;
+	localtime_s(&time_info, &now_time);  // Безопасная версия для Windows
+
+	std::stringstream ssclock;
+	ssclock << std::put_time(&time_info, "%Y-%m-%d");
+
+	std::string filename = "./BitTorrent_Data/bittorrent_" + ssclock.str() + ".log";
+	std::ofstream file(filename, std::ios::app);
+	if (file.is_open()) {
+		file << "[" << entry.timestamp << "] [" << GetLevelString(level)
+			<< "] [" << source << "] " << message << "\n";
+	}
 	OutputDebugStringA(ss.str().c_str());
 }
 

@@ -150,7 +150,6 @@
     <None Include="PROJECT_COMPLETION_STATUS.md" />
     <None Include="QUICKSTART.md" />
     <None Include="INDEX.md" />
-    <None Include="test_torrent_creator.py" />
     <None Include="BITtorrent\test_file.torrent" />
   </ItemGroup>
 </Project>

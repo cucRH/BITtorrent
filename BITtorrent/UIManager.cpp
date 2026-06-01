@@ -92,7 +92,7 @@ void UIManager::CreateInfoLabels() {
 		L"STATIC",
 		L"Time remaining: --",
 		WS_CHILD | WS_VISIBLE | SS_LEFT,
-		600, 15, 160, 20,
+		580, 15, 190, 20,
 		hMainWindow,
 		(HMENU)IDC_TIME_REMAINING,
 		GetModuleHandle(nullptr),
